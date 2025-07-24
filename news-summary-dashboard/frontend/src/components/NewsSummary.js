@@ -24,9 +24,9 @@ import IndustryDistributionChart from "./IndustryDistributionChart";
 import InfluenceTrendsChart from "./InfluenceTrendsChart";
 import TopbarIcons from "./TopbarIcons";
 
-const industries = ["Technology", "Healthcare", "Finance", "Energy"];
+const industries = ["Công nghệ", "Sức khỏe", "Tài chính", "Năng lượng"];
 
-const DEFAULT_INDUSTRY = "Technology";
+const DEFAULT_INDUSTRY = "Công nghệ";
 const DEFAULT_DATE = new Date().toISOString().split('T')[0];
 const SCORE_MARKS = [0, 20, 40, 60, 80, 100];
 const DEFAULT_SCORE = 0;
@@ -76,7 +76,7 @@ const NewsSummary = () => {
         <Flex w="100%" align="flex-end" justify="space-between" gap={2}>
           {/*-----------------Industry-----------------*/}
           <FormControl minW="220px" maxW="220px">
-            <FormLabel fontSize="sm" mb={1}>Industry</FormLabel>
+            <FormLabel fontSize="sm" mb={1}>Ngành</FormLabel>
             <Select value={industry} onChange={e => setIndustry(e.target.value)} bg="white" borderRadius="md" fontWeight="semibold" size="sm" h="40px" minH="40px" maxH="40px">
               {industries.map((ind) => (
                 <option value={ind} key={ind}>{ind}</option>
@@ -85,12 +85,12 @@ const NewsSummary = () => {
           </FormControl>
           {/*-----------------Date Range-----------------*/}
           <FormControl minW="220px" maxW="220px">
-            <FormLabel fontSize="sm" mb={1}>Date Range</FormLabel>
+            <FormLabel fontSize="sm" mb={1}>Ngày</FormLabel>
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} bg="white" borderRadius="md" size="sm" h="40px" minH="40px" maxH="40px" />
           </FormControl>
           {/*-----------------Influence Score-----------------*/} 
           <FormControl minW="320px" maxW="320px">
-            <FormLabel fontSize="sm" mb={1}>Influence Score</FormLabel>
+            <FormLabel fontSize="sm" mb={1}>Điểm ảnh hưởng</FormLabel>
             <Box
               position="relative"
               borderWidth="1px"
@@ -148,11 +148,11 @@ const NewsSummary = () => {
           </FormControl>
           {/*-----------------Search-----------------*/}
           <FormControl minW="140px" maxW="200px">
-            <FormLabel fontSize="sm" mb={1} color="transparent">Search</FormLabel>
+            <FormLabel fontSize="sm" mb={1} color="transparent">Tìm kiếm</FormLabel>
             <Input placeholder="Search" value={search} onChange={e => setSearch(e.target.value)} bg="white" borderRadius="md" size="sm" h="40px" minH="40px" maxH="40px" />
           </FormControl>
-          <Button colorScheme="blue" minW="90px" h="40px" fontWeight="bold" fontSize="md" bgGradient="linear(to-r, blue.500, blue.600)" transition="all 0.2s cubic-bezier(.08,.52,.52,1)" boxShadow="sm" _hover={{ bgGradient: "linear(to-r, blue.600, blue.500)", boxShadow: "md", transform: "translateY(-2px) scale(1.04)" }} _active={{ transform: "scale(0.96)", boxShadow: "xs" }}>Apply</Button>
-          <Button variant="outline" minW="90px" h="40px" fontWeight="bold" fontSize="md" color="gray.700" borderColor="gray.200" transition="all 0.2s cubic-bezier(.08,.52,.52,1)" boxShadow="sm" _hover={{ bg: "gray.50", borderColor: "gray.300", boxShadow: "md", transform: "translateY(-2px) scale(1.04)" }} _active={{ transform: "scale(0.96)", boxShadow: "xs" }} onClick={handleReset}>Reset</Button>
+          <Button colorScheme="blue" minW="90px" h="40px" fontWeight="bold" fontSize="md" bgGradient="linear(to-r, blue.500, blue.600)" transition="all 0.2s cubic-bezier(.08,.52,.52,1)" boxShadow="sm" _hover={{ bgGradient: "linear(to-r, blue.600, blue.500)", boxShadow: "md", transform: "translateY(-2px) scale(1.04)" }} _active={{ transform: "scale(0.96)", boxShadow: "xs" }}>Áp dụng</Button>
+          <Button variant="outline" minW="90px" h="40px" fontWeight="bold" fontSize="md" color="gray.700" borderColor="gray.200" transition="all 0.2s cubic-bezier(.08,.52,.52,1)" boxShadow="sm" _hover={{ bg: "gray.50", borderColor: "gray.300", boxShadow: "md", transform: "translateY(-2px) scale(1.04)" }} _active={{ transform: "scale(0.96)", boxShadow: "xs" }} onClick={handleReset}>Đặt lại</Button>
         </Flex>
       </Container>
 
