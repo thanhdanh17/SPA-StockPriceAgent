@@ -1,0 +1,30 @@
+# Directory/virtual env
+__pycache __/
+*.pyc
+*.pyo
+*.pyd
+Env/
+vend/
+.Idea/
+.vscode/
+
+# Large model file
+*.bin
+*.pt
+*.ckpt
+*.Nnx
+*.pth
+
+
+# File output training
+*.log
+*.csv
+*.Png
+*.json
+*.zip
+# Notebook Checkpoint
+.ipynb_checkpoints/
+
+# OS-Specific
+.Ds_store
+ThumBS.DB
