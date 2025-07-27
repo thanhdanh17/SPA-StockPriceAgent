@@ -26,7 +26,7 @@ def connect_postgres():
 def get_news_from_db():
     conn = connect_postgres()
     cursor = conn.cursor()
-    cursor.execute("""SELECT * FROM "SPADashboardNews";""")
+    cursor.execute("""SELECT * FROM "fireant_data";""")
     rows = cursor.fetchall()
     #print(rows)
     news_data = []

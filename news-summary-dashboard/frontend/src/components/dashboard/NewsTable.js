@@ -18,7 +18,7 @@ import {
   Spinner
 } from "@chakra-ui/react";
 import { FaRegBookmark, FaBookmark } from "react-icons/fa";
-import { supabase } from "../services/supabaseClient";
+import { supabase } from "../../services/supabaseClient";
 
 const NewsTable = () => {
   // State for data, loading, and error handling

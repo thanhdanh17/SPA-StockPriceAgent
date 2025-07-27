@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Container } from "@chakra-ui/react";
-import NewsSummary from "./components/NewsSummary";
-import Sidebar from "./components/Sidebar";
+import NewsSummary from "./pages/DashboardPage";
+import Sidebar from "./components/layout/Sidebar";
 
 function App() {
   return (
