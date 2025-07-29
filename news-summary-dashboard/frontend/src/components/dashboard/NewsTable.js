@@ -15,56 +15,21 @@ import {
   useColorModeValue,
   Button,
   Flex,
-  Spinner
+  Spinner,
 } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 import { FaRegBookmark, FaBookmark } from "react-icons/fa";
-import { supabase } from "../../services/supabaseClient";
 
-const NewsTable = () => {
-  // State for data, loading, and error handling
-  const [newsData, setNewsData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+const NewsTable = ({ newsData, loading, error }) => {
   // State for UI interactions
   const [bookmarks, setBookmarks] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // useEffect hook to fetch data from Supabase when the component mounts
   useEffect(() => {
-    const fetchNews = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Fetch data from the 'news_articles' table in Supabase
-        const { data, error: dbError } = await supabase
-          .from("fireant_data")
-          .select("*") // Select all columns
-          .order("date", { ascending: false }); // Order by date, newest first
-
-        if (dbError) {
-          // If Supabase returns an error, throw it to be caught by the catch block
-          throw dbError;
-        }
-
-        // Set the fetched data to our state
-        setNewsData(data || []);
-        // Initialize bookmarks based on the number of fetched items
-        setBookmarks(Array((data || []).length).fill(false));
-      } catch (err) {
-        // If any error occurs, update the error state
-        console.error("Error fetching data:", err.message);
-        setError("Không thể tải dữ liệu tin tức. Vui lòng thử lại sau.");
-      } finally {
-        // Set loading to false after the fetch attempt is complete
-        setLoading(false);
-      }
-    };
-
-    fetchNews();
-  }, []); // The empty dependency array ensures this effect runs only once
+    setBookmarks(Array((newsData || []).length).fill(false));
+    setCurrentPage(1); // Luôn quay về trang 1 khi có dữ liệu mới
+  }, [newsData]);
 
   const handleBookmark = (idx) => {
     setBookmarks((bm) => {
@@ -76,18 +41,64 @@ const NewsTable = () => {
 
   // --- Render logic ---
 
-  // Display a loading spinner while data is being fetched
+  // Tạo hiệu ứng xoay
+  const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+  // Tạo hiệu ứng nhấp nháy cho text
+  const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+`;
+
+  // Trong component của bạn
   if (loading) {
     return (
-      <Flex justify="center" align="center" height="400px">
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="blue.500"
-          size="xl"
-        />
-        <Text ml={4} fontSize="lg">
+      <Flex
+        justify="center"
+        align="center"
+        height="400px"
+        flexDirection="column"
+        gap={6}
+      >
+        {/* Gradient Spinner */}
+        <Box position="relative" w="80px" h="80px">
+          <Box
+            position="absolute"
+            top="0"
+            left="0"
+            w="100%"
+            h="100%"
+            borderRadius="full"
+            border="4px solid"
+            borderColor="transparent"
+            borderTopColor="blue.400"
+            animation={`${spin} 1s linear infinite`}
+          />
+          <Box
+            position="absolute"
+            top="0"
+            left="0"
+            w="100%"
+            h="100%"
+            borderRadius="full"
+            border="4px solid"
+            borderColor="transparent"
+            borderBottomColor="purple.500"
+            animation={`${spin} 0.5s linear infinite reverse`}
+          />
+        </Box>
+
+        {/* Animated Text */}
+        <Text
+          fontSize="xl"
+          fontWeight="medium"
+          bgGradient="linear(to-r, blue.400, purple.500)"
+          bgClip="text"
+          animation={`${pulse} 1.5s ease-in-out infinite`}
+        >
           Đang tải dữ liệu...
         </Text>
       </Flex>
@@ -109,10 +120,15 @@ const NewsTable = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentData = newsData.slice(startIndex, endIndex);
 
+  const formatPageNumber = (number) => {
+    // Chuyển số thành chuỗi và thêm '0' vào trước nếu cần để đủ 2 ký tự
+    return String(number).padStart(2, "0");
+  };
+
   return (
     <Box>
       <Box overflowX="auto">
-        <Table variant="simple" width="100%">
+        <Table variant="simple" width="100%" tableLayout="fixed">
           <Thead>
             <Tr bg="gray.100">
               <Th
@@ -124,13 +140,13 @@ const NewsTable = () => {
               <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">
                 Ngày
               </Th>
-              <Th w="16%" fontSize="lg" fontWeight="bold" textTransform="none">
+              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">
                 Ngành
               </Th>
-              <Th w="20%" fontSize="lg" fontWeight="bold" textTransform="none">
+              <Th w="22%" fontSize="lg" fontWeight="bold" textTransform="none">
                 Tiêu đề
               </Th>
-              <Th w="30%" fontSize="lg" fontWeight="bold" textTransform="none">
+              <Th w="32%" fontSize="lg" fontWeight="bold" textTransform="none">
                 Tóm tắt
               </Th>
               <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">
@@ -175,7 +191,7 @@ const NewsTable = () => {
                 {/* Date */}
                 <Td w="10%">{row.date}</Td>
                 {/* Industry */}
-                <Td w="16%">
+                <Td w="12%">
                   <Tooltip
                     label={
                       Array.isArray(row.industry)
@@ -191,7 +207,7 @@ const NewsTable = () => {
                     px={4}
                     py={2}
                   >
-                    <Box cursor="pointer" maxW="120px">
+                    <Box cursor="pointer">
                       <Flex
                         direction="column"
                         gap={1}
@@ -204,10 +220,11 @@ const NewsTable = () => {
                         ).map((item, i) => (
                           <Text
                             key={i}
-                            whiteSpace="nowrap"
+                            // whiteSpace="nowrap"
                             userSelect="none"
                             fontWeight="medium"
-                            width="fit-content"
+                            // width="fit-content"
+                            isTruncated
                           >
                             {item}
                           </Text>
@@ -227,7 +244,7 @@ const NewsTable = () => {
                   </Tooltip>
                 </Td>
                 {/* Title */}
-                <Td w="20%">
+                <Td w="22%">
                   <Tooltip
                     label={row.title}
                     isDisabled={row.title.length <= 50}
@@ -249,7 +266,7 @@ const NewsTable = () => {
                   </Tooltip>
                 </Td>
                 {/* Summary */}
-                <Td w="30%">
+                <Td w="32%">
                   <Tooltip
                     label={row.summary}
                     isDisabled={row.summary.length <= 80}
@@ -274,7 +291,7 @@ const NewsTable = () => {
                 {/* Score */}
                 <Td w="10%">
                   <HStack spacing={2}>
-                    <Text>{row.summary_token_count}</Text>
+                    <Text>{row.influence_score}</Text>
                     <Box w="30px" h="20px" bg={row.color} borderRadius="sm" />
                   </HStack>
                 </Td>
@@ -282,9 +299,7 @@ const NewsTable = () => {
                 <Td w="12%">
                   <Tooltip
                     label={
-                      Array.isArray(row.sentiment)
-                        ? row.sentiment.join(" ")
-                        : ""
+                      Array.isArray(row.hashtags) ? row.hashtags.join(" ") : ""
                     }
                     placement="right"
                     openDelay={300}
@@ -295,9 +310,9 @@ const NewsTable = () => {
                     px={4}
                     py={2}
                   >
-                    <Box cursor="pointer" maxW="100px">
+                    <Box cursor="pointer">
                       <Flex direction="column" gap={1} align="flex-start">
-                        {Array.isArray(row.sentiment) &&
+                        {Array.isArray(row.hashtags) &&
                           row.hashtags.slice(0, 2).map((tag, i) => (
                             <Tag
                               key={i}
@@ -311,8 +326,8 @@ const NewsTable = () => {
                               {tag}
                             </Tag>
                           ))}
-                        {Array.isArray(row.sentiment) &&
-                          row.sentiment.length > 2 && (
+                        {Array.isArray(row.hashtags) &&
+                          row.hashtags.length > 2 && (
                             <Tag
                               size="sm"
                               colorScheme="gray"
@@ -321,7 +336,7 @@ const NewsTable = () => {
                               userSelect="none"
                               width="fit-content"
                             >
-                              +{row.sentiment.length - 2}
+                              +{row.hashtags.length - 2}
                             </Tag>
                           )}
                       </Flex>
@@ -344,6 +359,13 @@ const NewsTable = () => {
       {/* Pagination controls */}
       <Flex justify="center" mt={4} gap={2}>
         <Button
+          onClick={() => setCurrentPage(1)}
+          isDisabled={currentPage === 1}
+          size="sm"
+        >
+          Trang đầu
+        </Button>
+        <Button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           isDisabled={currentPage === 1}
           size="sm"
@@ -351,7 +373,8 @@ const NewsTable = () => {
           Trang trước
         </Button>
         <Text alignSelf="center">
-          Trang {currentPage} / {totalPages > 0 ? totalPages : 1}
+          Trang {formatPageNumber(currentPage)} /{" "}
+          {formatPageNumber(totalPages > 0 ? totalPages : 1)}
         </Text>
         <Button
           onClick={() =>
