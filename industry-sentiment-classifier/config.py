@@ -15,7 +15,7 @@ class Config:
     print(f"Supabase URL: {SUPABASE_URL}")  
     print(f"Supabase KEY: {SUPABASE_KEY[:5]}...")  
     
-    MODEL_INDUSTRY_PATH = BASE_DIR / 'models' / 'PhoBERT_summary_industry.bin'
+    MODEL_INDUSTRY_PATH = BASE_DIR / 'models' / 'PhoBERT_industry_classificationv5.bin'
     MODEL_SENTIMENT_PATH = BASE_DIR / 'models' / 'PhoBERT_summary_sentiment.pth'
 
     TABLE_NAME = 'news'
