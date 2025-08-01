@@ -1,170 +1,71 @@
-# import psycopg2
-# from dotenv import load_dotenv
-# import os
-# from datetime import datetime
-
-# load_dotenv()
-
-# # Fetch variables
-# USER = os.getenv("user")
-# PASSWORD = os.getenv("password")
-# HOST = os.getenv("host")
-# PORT = os.getenv("port")
-# DBNAME = os.getenv("dbname")
-
-# def connect_postgres():
-#     conn = psycopg2.connect(
-#         user=USER,
-#         password=PASSWORD,
-#         host=HOST,
-#         port=PORT,
-#         dbname=DBNAME
-#     )
-#     return conn
-
-# def get_news_from_db(industry=None):
-#     conn = connect_postgres()
-#     cursor = conn.cursor()
-#     base_query = """SELECT * FROM "fireant_data" 
-#                     WHERE "date" 
-#                     IN (SELECT DISTINCT "date" 
-#                         FROM "fireant_data" 
-#                         WHERE "date" IS NOT NULL
-#                         ORDER BY "date" 
-#                         DESC LIMIT 5
-#                         )"""
-    
-#     params = []
-
-#     # Nếu có tham số industry được truyền vào, thêm điều kiện lọc
-#     if industry:
-#         base_query += ' AND "industry" = %s'
-#         params.append(industry)
-
-#     # Thêm dấu chấm phẩy để kết thúc câu lệnh
-#     base_query += ' ORDER BY "date" DESC;'
-    
-#     # Thực thi câu lệnh với tham số một cách an toàn để chống SQL Injection
-#     cursor.execute(base_query, tuple(params))
-
-#     rows = cursor.fetchall()
-#     #print(rows)
-#     news_data = []
-#     for row in rows:
-#         data = {
-#             'date': row[11],
-#             'industry': row[7],
-#             'title': row[1],
-#             'summary': row[6],
-#             'influence_score': row[10], # lấy tạm của thằng summary_token_count
-#             'hashtags': row[8] # lấy tạm của thằng sentiment
-#         }
-#         data['date'] = str(data['date'])
-#         # 2025-06-30
-#         data['date'] = data['date'][8:10]+"/"+data['date'][5:7]+"/"+data['date'][0:4]
-
-#         # chuyển đổi tên ngành từ tiếng anh sang tiếng Việt
-#         if data['industry'] == "Finance":
-#             data['industry'] = "Tài chính"
-#         elif data['industry'] == "Technology":
-#             data['industry'] = "Công nghệ"
-#         elif data['industry'] == "Energy":
-#             data['industry'] = "Năng lượng"
-#         elif data['industry'] == "Healthcare":
-#             data['industry'] = "Sức khỏe"
-#         elif data['industry'] == "Other":
-#             data['industry'] = "Khác"
-
-#         # Chuyển đổi chuỗi hashtags thành một mảng (list).
-#         hashtags_string = data.get('hashtags') 
-#         if isinstance(hashtags_string, str):
-#             # Tách chuỗi thành list dựa vào khoảng trắng
-#             data['hashtags'] = hashtags_string.split() 
-#         else:
-#             # Nếu không phải string hoặc là None, trả về mảng rỗng
-#             data['hashtags'] = []
-
-#         # Tính toán màu sắc cho score
-#         try:
-#             score = int(data['influence_score'])
-#         except (ValueError, TypeError):
-#             score = 0  # Giá trị mặc định nếu không thể chuyển đổi thành số
-            
-#         if score < 50:
-#             data['color'] = 'red.300'
-#         elif 50 <= score <= 75:
-#             data['color'] = 'yellow.300'
-#         else:
-#             data['color'] = 'green.300'
-        
-#         news_data.append(data)
-#     cursor.close()
-#     conn.close()
-#     return news_data
-
 import redis
 import json
 from dotenv import load_dotenv
 import os
 
-# Tải các biến môi trường
 load_dotenv()
 
-# --- HÀM KẾT NỐI REDIS ---
+# 1. Khởi tạo Connection Pool một lần duy nhất khi module được tải
+# Pool sẽ quản lý các kết nối đến Redis một cách hiệu quả.
+try:
+    # decode_responses=True nên được đặt ở đây để tất cả các kết nối từ pool đều có chung cài đặt này.
+    pool = redis.ConnectionPool(
+        host=os.getenv("REDIS_HOST"),
+        port=os.getenv("REDIS_PORT"),
+        password=os.getenv("REDIS_PASSWORD"),
+        decode_responses=True
+    )
 
-def get_redis_connection():
-    """Tạo kết nối tới Redis."""
-    try:
-        r = redis.Redis(
-            host=os.getenv("REDIS_HOST"),
-            port=os.getenv("REDIS_PORT"),
-            password=os.getenv("REDIS_PASSWORD"),
-            decode_responses=True # Tự động giải mã response thành string
-        )
-        # Kiểm tra kết nối
-        r.ping()
-        print("Kết nối Redis thành công.")
-        return r
-    except redis.exceptions.ConnectionError as e:
-        print(f"Lỗi kết nối Redis: {e}")
-        return None
+    # 2. Tạo một client Redis từ pool. 
+    # Client này có thể được tái sử dụng trong toàn bộ ứng dụng.
+    redis_client = redis.Redis(connection_pool=pool)
 
-# --- HÀM LẤY DỮ LIỆU TỪ CACHE ---
+    # 3. Kiểm tra kết nối ban đầu để đảm bảo pool được cấu hình đúng
+    redis_client.ping()
+    print("Đã tạo Redis connection pool và client thành công.")
+
+except redis.exceptions.ConnectionError as e:
+    print(f"Lỗi kết nối Redis khi khởi tạo pool: {e}")
+    redis_client = None # Đặt client là None nếu không thể kết nối
+except Exception as e:
+    print(f"Đã xảy ra lỗi không xác định khi khởi tạo Redis: {e}")
+    redis_client = None
+
+# Hàm get_redis_connection() ban đầu không còn cần thiết nữa.
 
 def get_news_from_db(industry=None):
     """
-    Hàm này giờ sẽ lấy dữ liệu trực tiếp từ Redis cache.
-    Nó cũng sẽ thực hiện việc lọc theo ngành trên dữ liệu đã cache.
+    Hàm này lấy dữ liệu từ Redis sử dụng client đã kết nối qua connection pool.
     """
-    redis_conn = get_redis_connection()
-    if not redis_conn:
-        return [] # Trả về rỗng nếu không thể kết nối Redis
+    # Kiểm tra xem client đã được khởi tạo thành công chưa
+    if not redis_client:
+        print("Redis client không khả dụng do lỗi kết nối ban đầu.")
+        return []
+
+    # Xác định đúng key trên Redis cần lấy
+    if industry:
+        # Nếu có filter, lấy key của ngành đó. Ví dụ: "news:Finance"
+        redis_key = f"news:{industry}"
+    else:
+        # Nếu không có filter, lấy key chứa tất cả tin tức
+        redis_key = "news:all"
+
+    print(f"Đang lấy dữ liệu từ Redis với key: '{redis_key}'")
 
     try:
-        redis_key = "news:latest_5_days"
-        
-        # 1. Lấy dữ liệu dạng chuỗi JSON từ Redis
-        json_data = redis_conn.get(redis_key)
+        # 4. Sử dụng client đã có sẵn, nó sẽ tự động quản lý kết nối từ pool.
+        json_data = redis_client.get(redis_key)
 
         if not json_data:
-            print(f"Không tìm thấy dữ liệu trong Redis với key: {redis_key}")
-            return []
+            return [] # Trả về rỗng nếu không có dữ liệu
 
-        # 2. Chuyển chuỗi JSON thành danh sách các dictionary
-        all_news = json.loads(json_data)
+        # Dữ liệu trên Redis đã được xử lý sẵn, chỉ cần trả về
+        return json.loads(json_data)
 
-        # # 3. Lọc theo ngành (nếu có) ngay trên backend
-        # if industry:
-        #     # Lưu ý: Tên ngành từ frontend đã được dịch sang tiếng Việt
-        #     # Ví dụ: "Tài chính", "Công nghệ",...
-        #     print(f"Thực hiện lọc với ngành: {industry}")
-        #     filtered_news = [news for news in all_news if news.get('industry') == industry]
-        #     return filtered_news
-        # else:
-        #     # Nếu không có filter, trả về toàn bộ dữ liệu
-        #     return all_news
-        return all_news
-
+    except redis.exceptions.ConnectionError as e:
+        # Lỗi này xảy ra nếu Redis bị ngắt kết nối trong quá trình hoạt động
+        print(f"Mất kết nối tới Redis: {e}. Hãy thử lại sau.")
+        return []
     except Exception as e:
-        print(f"Đã xảy ra lỗi khi lấy hoặc xử lý dữ liệu từ Redis: {e}")
+        print(f"Đã xảy ra lỗi khi lấy dữ liệu từ Redis: {e}")
         return []

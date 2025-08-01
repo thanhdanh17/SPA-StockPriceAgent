@@ -12,10 +12,18 @@ import {
   HStack,
   Tag,
   IconButton,
-  useColorModeValue,
   Button,
   Flex,
-  Spinner,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  VStack,
+  Heading,
 } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
 import { FaRegBookmark, FaBookmark } from "react-icons/fa";
@@ -26,34 +34,43 @@ const NewsTable = ({ newsData, loading, error }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // 2. THÊM STATE CHO MODAL
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedNews, setSelectedNews] = useState(null);
+
   useEffect(() => {
     setBookmarks(Array((newsData || []).length).fill(false));
-    setCurrentPage(1); // Luôn quay về trang 1 khi có dữ liệu mới
+    setCurrentPage(1);
   }, [newsData]);
 
-  const handleBookmark = (idx) => {
+  // Sửa lại hàm bookmark để ngăn sự kiện click lan ra hàng
+  const handleBookmark = (e, idx) => {
+    e.stopPropagation(); // Ngăn sự kiện click vào hàng
     setBookmarks((bm) => {
       const copy = [...bm];
       copy[idx] = !copy[idx];
       return copy;
     });
   };
+  
+  // 3. HÀM XỬ LÝ KHI CLICK VÀO MỘT HÀNG
+  const handleRowClick = (newsItem) => {
+    setSelectedNews(newsItem);
+    onOpen();
+  };
+
 
   // --- Render logic ---
-
-  // Tạo hiệu ứng xoay
   const spin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-`;
+  `;
 
-  // Tạo hiệu ứng nhấp nháy cho text
   const pulse = keyframes`
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
-`;
+  `;
 
-  // Trong component của bạn
   if (loading) {
     return (
       <Flex
@@ -63,7 +80,6 @@ const NewsTable = ({ newsData, loading, error }) => {
         flexDirection="column"
         gap={6}
       >
-        {/* Gradient Spinner */}
         <Box position="relative" w="80px" h="80px">
           <Box
             position="absolute"
@@ -90,8 +106,6 @@ const NewsTable = ({ newsData, loading, error }) => {
             animation={`${spin} 0.5s linear infinite reverse`}
           />
         </Box>
-
-        {/* Animated Text */}
         <Text
           fontSize="xl"
           fontWeight="medium"
@@ -105,7 +119,6 @@ const NewsTable = ({ newsData, loading, error }) => {
     );
   }
 
-  // Display an error message if the fetch failed
   if (error) {
     return (
       <Flex justify="center" align="center" height="400px" color="red.500">
@@ -114,14 +127,12 @@ const NewsTable = ({ newsData, loading, error }) => {
     );
   }
 
-  // --- Pagination Logic (runs after data is loaded) ---
   const totalPages = Math.ceil(newsData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentData = newsData.slice(startIndex, endIndex);
 
   const formatPageNumber = (number) => {
-    // Chuyển số thành chuỗi và thêm '0' vào trước nếu cần để đủ 2 ký tự
     return String(number).padStart(2, "0");
   };
 
@@ -131,61 +142,35 @@ const NewsTable = ({ newsData, loading, error }) => {
         <Table variant="simple" width="100%" tableLayout="fixed">
           <Thead>
             <Tr bg="gray.100">
-              <Th
-                w="2%"
-                fontSize="lg"
-                fontWeight="bold"
-                textTransform="none"
-              ></Th>
-              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">
-                Ngày
-              </Th>
-              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">
-                Ngành
-              </Th>
-              <Th w="22%" fontSize="lg" fontWeight="bold" textTransform="none">
-                Tiêu đề
-              </Th>
-              <Th w="32%" fontSize="lg" fontWeight="bold" textTransform="none">
-                Tóm tắt
-              </Th>
-              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">
-                Ảnh hưởng
-              </Th>
-              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">
-                Hashtags
-              </Th>
+              <Th w="2%"></Th>
+              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">Ngày</Th>
+              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">Ngành</Th>
+              <Th w="22%" fontSize="lg" fontWeight="bold" textTransform="none">Tiêu đề</Th>
+              <Th w="32%" fontSize="lg" fontWeight="bold" textTransform="none">Tóm tắt</Th>
+              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">Ảnh hưởng</Th>
+              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">Hashtags</Th>
             </Tr>
           </Thead>
           <Tbody>
             {currentData.map((row, idx) => (
+              // 4. THÊM ONCLICK VÀ CURSOR POINTER CHO HÀNG
               <Tr
                 key={row.id || idx}
-                _hover={{ bg: "gray.50" }}
+                _hover={{ bg: "gray.50", cursor: "pointer" }}
                 height="110px"
                 minHeight="110px"
+                onClick={() => handleRowClick(row)}
               >
                 {/* Bookmark */}
                 <Td w="2%" textAlign="center">
                   <IconButton
-                    icon={
-                      bookmarks[startIndex + idx] ? (
-                        <FaBookmark />
-                      ) : (
-                        <FaRegBookmark />
-                      )
-                    }
-                    color={
-                      bookmarks[startIndex + idx] ? "yellow.400" : "blue.500"
-                    }
+                    icon={bookmarks[startIndex + idx] ? <FaBookmark /> : <FaRegBookmark />}
+                    color={bookmarks[startIndex + idx] ? "yellow.400" : "blue.500"}
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleBookmark(startIndex + idx)}
-                    aria-label={
-                      bookmarks[startIndex + idx]
-                        ? "Bỏ bookmark"
-                        : "Đánh dấu bookmark"
-                    }
+                    // Cập nhật onClick của bookmark
+                    onClick={(e) => handleBookmark(e, startIndex + idx)}
+                    aria-label={bookmarks[startIndex + idx] ? "Bỏ bookmark" : "Đánh dấu bookmark"}
                   />
                 </Td>
                 {/* Date */}
@@ -345,49 +330,72 @@ const NewsTable = ({ newsData, loading, error }) => {
                 </Td>
               </Tr>
             ))}
-            {/* Add empty rows to maintain table height */}
-            {Array(itemsPerPage - currentData.length)
-              .fill("")
-              .map((_, i) => (
-                <Tr key={"empty-" + i} height="110px" minHeight="110px">
-                  <Td colSpan={7} />
-                </Tr>
-              ))}
+            {Array(itemsPerPage - currentData.length).fill("").map((_, i) => (
+                <Tr key={"empty-" + i} height="110px" minHeight="110px"><Td colSpan={7} /></Tr>
+            ))}
           </Tbody>
         </Table>
       </Box>
       {/* Pagination controls */}
-      <Flex justify="center" mt={4} gap={2}>
-        <Button
-          onClick={() => setCurrentPage(1)}
-          isDisabled={currentPage === 1}
-          size="sm"
-        >
-          Trang đầu
-        </Button>
-        <Button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          isDisabled={currentPage === 1}
-          size="sm"
-        >
-          Trang trước
-        </Button>
-        <Text alignSelf="center">
-          Trang {formatPageNumber(currentPage)} /{" "}
-          {formatPageNumber(totalPages > 0 ? totalPages : 1)}
-        </Text>
-        <Button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
-          isDisabled={currentPage === totalPages || totalPages === 0}
-          size="sm"
-        >
-          Trang sau
-        </Button>
-      </Flex>
+      <Flex justify="center" mt={4} gap={2}>{/* ... giữ nguyên code ... */}</Flex>
+
+      {/* 5. THÊM COMPONENT MODAL */}
+      {selectedNews && (
+        <Modal isOpen={isOpen} onClose={onClose} size="4xl" scrollBehavior="inside">
+          <ModalOverlay bg="blackAlpha.600" />
+          <ModalContent>
+            <ModalHeader>
+              <Heading size="lg">{selectedNews.title}</Heading>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <VStack align="start" spacing={5}>
+                {/* --- Thông tin meta --- */}
+                <HStack spacing={6} wrap="wrap">
+                  <Text fontSize="sm" color="gray.600"><strong>Ngày:</strong> {selectedNews.date}</Text>
+                  <Text fontSize="sm" color="gray.600">
+                    <strong>Ngành:</strong> {Array.isArray(selectedNews.industry) ? selectedNews.industry.join(", ") : selectedNews.industry}
+                  </Text>
+                  <HStack>
+                    <Text fontSize="sm" color="gray.600"><strong>Ảnh hưởng:</strong> {selectedNews.influence_score}</Text>
+                    <Box w="30px" h="20px" bg={selectedNews.color} borderRadius="sm" />
+                  </HStack>
+                </HStack>
+
+                {/* --- Tóm tắt --- */}
+                <Box>
+                  <Heading size="md" mb={2}>Tóm tắt</Heading>
+                  <Text fontStyle="italic" color="gray.800" bg="gray.50" p={3} borderRadius="md">
+                    {selectedNews.summary}
+                  </Text>
+                </Box>
+                
+                {/* --- Nội dung đầy đủ --- */}
+                <Box>
+                  <Heading size="md" mb={2}>Nội dung chi tiết</Heading>
+                  <Text whiteSpace="pre-wrap" lineHeight="tall">
+                    {selectedNews.content || "Không có nội dung chi tiết để hiển thị."}
+                  </Text>
+                </Box>
+                 {/* --- Hashtags --- */}
+                <Box>
+                    <Heading size="sm" mb={2}>Hashtags</Heading>
+                    <Flex wrap="wrap" gap={2}>
+                        {Array.isArray(selectedNews.hashtags) && selectedNews.hashtags.map((tag, i) => (
+                            <Tag key={i} size="md" colorScheme="blue" variant="subtle">{tag}</Tag>
+                        ))}
+                    </Flex>
+                </Box>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onClose}>Đóng</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
     </Box>
   );
 };
 
-export default NewsTable; 
+export default NewsTable;

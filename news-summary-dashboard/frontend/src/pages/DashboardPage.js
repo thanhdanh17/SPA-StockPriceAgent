@@ -17,7 +17,8 @@ import {
   useColorModeValue,
   SliderMark,
   Container,
-  Flex
+  Flex,
+  ButtonGroup
 } from "@chakra-ui/react";
 import NewsTable from "../components/dashboard/NewsTable";
 import IndustryDistributionChart from "../components/dashboard/IndustryDistributionChart";
@@ -41,17 +42,15 @@ const industries = ["Công nghệ", "Sức khỏe", "Tài chính", "Năng lượ
 
 const DEFAULT_INDUSTRY = "";
 const DEFAULT_DATE = new Date().toISOString().split('T')[0];
-const SCORE_MARKS = [0, 20, 40, 60, 80, 100];
-const DEFAULT_SCORE = 0;
+const DEFAULT_SENTIMENT = "";
 const DEFAULT_SEARCH = "";
 
 const DashboardPage = () => {
   // State cho các bộ lọc
   const [industry, setIndustry] = useState(DEFAULT_INDUSTRY);
   const [date, setDate] = useState(DEFAULT_DATE);
-  const [score, setScore] = useState(DEFAULT_SCORE);
+  const [sentiment, setSentiment] = useState(DEFAULT_SENTIMENT);
   const [search, setSearch] = useState(DEFAULT_SEARCH);
-  const [showMark, setShowMark] = useState(false);
 
   // === Nâng state quản lý dữ liệu từ NewsTable lên đây ===
   const [newsData, setNewsData] = useState([]);
@@ -92,7 +91,7 @@ const DashboardPage = () => {
   const handleReset = async () => {
     setIndustry(DEFAULT_INDUSTRY);
     setDate(DEFAULT_DATE);
-    setScore(DEFAULT_SCORE);
+    setSentiment(DEFAULT_SENTIMENT);
     setSearch(DEFAULT_SEARCH);
 
     // 2. Tải lại toàn bộ dữ liệu gốc bằng cách gọi API không có filter
@@ -158,6 +157,7 @@ const DashboardPage = () => {
               h="40px"
               minH="40px"
               maxH="40px"
+              placeholder="Tất cả"
             >
               {industries.map((ind) => (
                 <option value={ind} key={ind}>
@@ -184,67 +184,45 @@ const DashboardPage = () => {
             />
           </FormControl>
 
-          {/*-----------------Influence Score-----------------*/}
-          <FormControl minW="320px" maxW="320px">
+          {/*-----------------Influence-----------------*/}
+          <FormControl minW="280px" maxW="280px">
             <FormLabel fontSize="lg" mb={1}>
-              Điểm ảnh hưởng
+              Ảnh hưởng
             </FormLabel>
-            <Box
-              position="relative"
-              borderWidth="1px"
-              borderRadius="md"
-              bg="white"
-              h="40px"
-              px={4}
-            >
-              <Slider
-                pos="absolute"
-                top="0"
-                left="0"
-                right="0"
-                bottom="0"
-                value={score}
-                onChange={(val) =>
-                  setScore(
-                    SCORE_MARKS.reduce((prev, curr) =>
-                      Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
-                    )
-                  )
-                }
-                min={0}
-                max={100}
-                step={null}
-                colorScheme="blue"
-                size="sm"
-                h="100%"
-                onChangeStart={() => setShowMark(true)}
-                onChangeEnd={() => setShowMark(false)}
+            {/* isAttached nối các nút lại với nhau */}
+            <ButtonGroup variant="outline" isAttached size="sm" h="40px">
+              <Button
+                onClick={() => setSentiment("positive")}
+                // Làm nổi bật nút đang được chọn
+                isActive={sentiment === "positive"}
+                _active={{ bg: "blue.500", color: "white" }}
+                minW="90px"
+                h="40px"
               >
-                <SliderTrack borderRadius="md" bg="gray.100">
-                  <SliderFilledTrack />
-                </SliderTrack>
-                <SliderThumb boxSize={4} />
-
-                {SCORE_MARKS.map((mark) => (
-                  <SliderMark
-                    key={mark}
-                    value={mark}
-                    pos="absolute"
-                    bottom="-1px" // Kéo sát đáy khung
-                    left={`${mark}%`} // Đặt ngang theo % giá trị
-                    transform="translateX(-50%)" // Căn giữa ngang
-                    fontSize="xs"
-                    color="gray.500"
-                    userSelect="none"
-                  >
-                    {mark}
-                  </SliderMark>
-                ))}
-              </Slider>
-            </Box>
+                Tích cực
+              </Button>
+              <Button
+                onClick={() => setSentiment("negative")}
+                isActive={sentiment === "negative"}
+                _active={{ bg: "blue.500", color: "white" }}
+                minW="90px"
+                h="40px"
+              >
+                Tiêu cực
+              </Button>
+              <Button
+                onClick={() => setSentiment("neutral")}
+                isActive={sentiment === "neutral"}
+                _active={{ bg: "blue.500", color: "white" }}
+                minW="90px"
+                h="40px"
+              >
+                Trung tính
+              </Button>
+            </ButtonGroup>
           </FormControl>
           {/*-----------------Search-----------------*/}
-          <FormControl minW="140px" maxW="200px">
+          <FormControl minW="220px" maxW="300px">
             <FormLabel fontSize="sm" mb={1} color="transparent">
               Tìm kiếm
             </FormLabel>

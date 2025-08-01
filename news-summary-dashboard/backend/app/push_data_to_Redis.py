@@ -23,12 +23,11 @@ def get_redis_connection():
     r = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"), password=os.getenv("REDIS_PASSWORD"), decode_responses=True)
     return r
 
-# --- HÀM LOGIC ĐỒNG BỘ ---
 def sync_postgres_to_redis():
     logging.info("Bắt đầu quá trình đồng bộ...")
     pg_conn = None
     try:
-        # 1. LẤY DỮ LIỆU TỪ POSTGRES
+        # 1. LẤY TOÀN BỘ DỮ LIỆU CỦA 5 NGÀY GẦN NHẤT
         pg_conn = get_db_connection()
         cursor = pg_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         query = """
@@ -40,12 +39,21 @@ def sync_postgres_to_redis():
         rows = cursor.fetchall()
         logging.info(f"Đã lấy được {len(rows)} dòng dữ liệu từ PostgreSQL.")
 
-        # 2. XỬ LÝ DỮ LIỆU (Giữ nguyên logic của bạn)
-        processed_data = []
+        # 2. XỬ LÝ VÀ PHÂN LOẠI DỮ LIỆU THEO NGÀNH
+        
+        # Tạo một dictionary để chứa dữ liệu đã được phân loại
+        data_by_industry = {
+            "Finance": [],
+            "Technology": [],
+            "Energy": [],
+            "Healthcare": [],
+            "Other": [],
+            "all": [] # Thêm một mục để chứa tất cả dữ liệu
+        }
+
         for row in rows:
-            formatted_date = ""
-            if row.get('date'):
-                formatted_date = row['date'].strftime('%d/%m/%Y')
+            # --- Logic xử lý cho mỗi dòng (giữ nguyên) ---
+            formatted_date = row['date'].strftime('%d/%m/%Y') if row.get('date') else ""
             
             data = {
                 'date': formatted_date,
@@ -55,18 +63,16 @@ def sync_postgres_to_redis():
                 'influence_score': row.get('summary_token_count', 0),
                 'hashtags': row.get('sentiment', '')
             }
-            # Chuyển ngữ tên ngành
-            industry_map = {
-                "Finance": "Tài chính", "Technology": "Công nghệ",
-                "Energy": "Năng lượng", "Healthcare": "Sức khỏe", "Other": "Khác"
-            }
+
+            original_industry = data['industry'] # Lưu lại tên ngành gốc (tiếng Anh)
+
+            industry_map = {"Finance": "Tài chính", "Technology": "Công nghệ", "Energy": "Năng lượng", "Healthcare": "Sức khỏe", "Other": "Khác"}
             data['industry'] = industry_map.get(data['industry'], data['industry'])
             
-            # Xử lý hashtags
-            hashtags_string = data.get('hashtags', '')
-            data['hashtags'] = hashtags_string.split() if isinstance(hashtags_string, str) else []
+            hashtags_map = {"Positive": "Tích_cực", "Negative": "Tiêu_cực", "Neutral": "Trung_tính"}
+            data['hashtags'] = hashtags_map.get(data['hashtags'], data['hashtags'])
+            data['hashtags'] = data['hashtags'].split() if isinstance(data['hashtags'], str) else []
 
-            # Tính toán màu sắc
             try:
                 score = int(data['influence_score'])
             except (ValueError, TypeError):
@@ -74,30 +80,45 @@ def sync_postgres_to_redis():
             if score < 50: data['color'] = 'red.300'
             elif 50 <= score <= 75: data['color'] = 'yellow.300'
             else: data['color'] = 'green.300'
-            
-            processed_data.append(data)
-        
-        logging.info("Xử lý dữ liệu hoàn tất.")
+            # --- Kết thúc logic xử lý ---
 
-        # 3. ĐẨY DỮ LIỆU LÊN REDIS
-        if processed_data:
-            redis_conn = get_redis_connection()
-            redis_key = "news:latest_5_days"
-            json_data = json.dumps(processed_data, ensure_ascii=False)
-            redis_conn.set(redis_key, json_data, ex=86400)
-            logging.info(f"Đã đẩy thành công {len(processed_data)} mục vào Redis với key '{redis_key}'.")
+            # Thêm dữ liệu đã xử lý vào đúng danh sách ngành (dựa trên tên gốc)
+            if original_industry in data_by_industry:
+                data_by_industry[original_industry].append(data)
+            
+            # Luôn thêm vào danh sách 'all'
+            data_by_industry["all"].append(data)
+
+        logging.info("Xử lý và phân loại dữ liệu hoàn tất.")
+
+        # 3. ĐẨY DỮ LIỆU ĐÃ PHÂN LOẠI LÊN REDIS
+        redis_conn = get_redis_connection()
         
-        return len(processed_data) # Trả về số lượng bản ghi đã đồng bộ
+        # Sử dụng pipeline để gửi nhiều lệnh cùng lúc, hiệu quả hơn
+        with redis_conn.pipeline() as pipe:
+            # Lặp qua từng ngành trong dictionary đã tạo
+            for industry_name, data_list in data_by_industry.items():
+                if data_list: # Chỉ đẩy lên nếu có dữ liệu
+                    # Tạo key động, ví dụ: "news:Finance", "news:all"
+                    redis_key = f"news:{industry_name}"
+                    json_data = json.dumps(data_list, ensure_ascii=False)
+                    # Đặt thời gian hết hạn là 1 ngày
+                    pipe.set(redis_key, json_data, ex=86400)
+                    logging.info(f"Đã chuẩn bị đẩy {len(data_list)} mục cho key '{redis_key}'.")
+            
+            # Thực thi tất cả các lệnh đã chuẩn bị
+            pipe.execute()
+        
+        logging.info("Đã đẩy thành công tất cả các key lên Redis.")
+        return len(rows)
 
     except Exception as e:
         logging.error(f"Đã xảy ra lỗi trong quá trình đồng bộ: {e}")
-        # Ném lỗi ra ngoài để endpoint có thể bắt được
         raise e
     finally:
         if pg_conn:
             pg_conn.close()
             logging.info("Đã đóng kết nối PostgreSQL.")
-
 
 # --- TẠO ỨNG DỤNG VÀ API ENDPOINT ---
 
