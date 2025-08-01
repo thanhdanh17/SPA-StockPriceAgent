@@ -24,9 +24,11 @@ import {
   ModalFooter,
   VStack,
   Heading,
+  Icon,
 } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
 import { FaRegBookmark, FaBookmark } from "react-icons/fa";
+import { StarIcon, CalendarIcon, ViewIcon } from '@chakra-ui/icons';
 
 const NewsTable = ({ newsData, loading, error }) => {
   // State for UI interactions
@@ -143,12 +145,24 @@ const NewsTable = ({ newsData, loading, error }) => {
           <Thead>
             <Tr bg="gray.100">
               <Th w="2%"></Th>
-              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">Ngày</Th>
-              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">Ngành</Th>
-              <Th w="22%" fontSize="lg" fontWeight="bold" textTransform="none">Tiêu đề</Th>
-              <Th w="32%" fontSize="lg" fontWeight="bold" textTransform="none">Tóm tắt</Th>
-              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">Ảnh hưởng</Th>
-              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">Hashtags</Th>
+              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">
+                Ngày
+              </Th>
+              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">
+                Ngành
+              </Th>
+              <Th w="22%" fontSize="lg" fontWeight="bold" textTransform="none">
+                Tiêu đề
+              </Th>
+              <Th w="32%" fontSize="lg" fontWeight="bold" textTransform="none">
+                Tóm tắt
+              </Th>
+              <Th w="10%" fontSize="lg" fontWeight="bold" textTransform="none">
+                Ảnh hưởng
+              </Th>
+              <Th w="12%" fontSize="lg" fontWeight="bold" textTransform="none">
+                Hashtags
+              </Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -164,13 +178,25 @@ const NewsTable = ({ newsData, loading, error }) => {
                 {/* Bookmark */}
                 <Td w="2%" textAlign="center">
                   <IconButton
-                    icon={bookmarks[startIndex + idx] ? <FaBookmark /> : <FaRegBookmark />}
-                    color={bookmarks[startIndex + idx] ? "yellow.400" : "blue.500"}
+                    icon={
+                      bookmarks[startIndex + idx] ? (
+                        <FaBookmark />
+                      ) : (
+                        <FaRegBookmark />
+                      )
+                    }
+                    color={
+                      bookmarks[startIndex + idx] ? "yellow.400" : "blue.500"
+                    }
                     variant="ghost"
                     size="sm"
                     // Cập nhật onClick của bookmark
                     onClick={(e) => handleBookmark(e, startIndex + idx)}
-                    aria-label={bookmarks[startIndex + idx] ? "Bỏ bookmark" : "Đánh dấu bookmark"}
+                    aria-label={
+                      bookmarks[startIndex + idx]
+                        ? "Bỏ bookmark"
+                        : "Đánh dấu bookmark"
+                    }
                   />
                 </Td>
                 {/* Date */}
@@ -330,66 +356,241 @@ const NewsTable = ({ newsData, loading, error }) => {
                 </Td>
               </Tr>
             ))}
-            {Array(itemsPerPage - currentData.length).fill("").map((_, i) => (
-                <Tr key={"empty-" + i} height="110px" minHeight="110px"><Td colSpan={7} /></Tr>
-            ))}
+            {Array(itemsPerPage - currentData.length)
+              .fill("")
+              .map((_, i) => (
+                <Tr key={"empty-" + i} height="110px" minHeight="110px">
+                  <Td colSpan={7} />
+                </Tr>
+              ))}
           </Tbody>
         </Table>
       </Box>
       {/* Pagination controls */}
-      <Flex justify="center" mt={4} gap={2}>{/* ... giữ nguyên code ... */}</Flex>
+      <Flex justify="center" mt={4} gap={2}>
+        <Button
+          onClick={() => setCurrentPage(1)}
+          isDisabled={currentPage === 1}
+          size="sm"
+        >
+          Trang đầu
+        </Button>
+        <Button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          isDisabled={currentPage === 1}
+          size="sm"
+        >
+          Trang trước
+        </Button>
+        <Text alignSelf="center">
+          Trang {formatPageNumber(currentPage)} /{" "}
+          {formatPageNumber(totalPages > 0 ? totalPages : 1)}
+        </Text>
+        <Button
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
+          isDisabled={currentPage === totalPages || totalPages === 0}
+          size="sm"
+        >
+          Trang sau
+        </Button>
+      </Flex>
 
       {/* 5. THÊM COMPONENT MODAL */}
       {selectedNews && (
-        <Modal isOpen={isOpen} onClose={onClose} size="4xl" scrollBehavior="inside">
-          <ModalOverlay bg="blackAlpha.600" />
-          <ModalContent>
-            <ModalHeader>
-              <Heading size="lg">{selectedNews.title}</Heading>
-            </ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <VStack align="start" spacing={5}>
-                {/* --- Thông tin meta --- */}
-                <HStack spacing={6} wrap="wrap">
-                  <Text fontSize="sm" color="gray.600"><strong>Ngày:</strong> {selectedNews.date}</Text>
-                  <Text fontSize="sm" color="gray.600">
-                    <strong>Ngành:</strong> {Array.isArray(selectedNews.industry) ? selectedNews.industry.join(", ") : selectedNews.industry}
-                  </Text>
-                  <HStack>
-                    <Text fontSize="sm" color="gray.600"><strong>Ảnh hưởng:</strong> {selectedNews.influence_score}</Text>
-                    <Box w="30px" h="20px" bg={selectedNews.color} borderRadius="sm" />
-                  </HStack>
-                </HStack>
+        <Modal
+          isOpen={isOpen}
+          onClose={onClose}
+          size="5xl"
+          scrollBehavior="inside"
+          motionPreset="scale"
+          isCentered
+        >
+          <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(2px)" />
 
-                {/* --- Tóm tắt --- */}
-                <Box>
-                  <Heading size="md" mb={2}>Tóm tắt</Heading>
-                  <Text fontStyle="italic" color="gray.800" bg="gray.50" p={3} borderRadius="md">
+          <ModalContent borderRadius="xl" overflow="hidden" boxShadow="xl">
+            <Box bgGradient="linear(to-r, blue.600, blue.500)" px={6} py={4}>
+              <ModalHeader color="white" px={0} pt={3}>
+                <Heading size="xl">{selectedNews.title}</Heading>
+              </ModalHeader>
+
+              <ModalCloseButton
+                size="lg"
+                color="white"
+                _hover={{ bg: "blue.400" }}
+              />
+            </Box>
+
+            <ModalBody py={6} px={{ base: 4, md: 8 }}>
+              <VStack align="start" spacing={6}>
+                {/* --- Meta Information --- */}
+                <Flex
+                  direction={{ base: "column", md: "row" }}
+                  gap={4}
+                  wrap="wrap"
+                  pb={3}
+                  borderBottom="1px solid"
+                  borderColor="gray.100"
+                  w="full"
+                >
+                  {/* Sửa: Thay thế bằng icon trực tiếp */}
+                  <HStack spacing={2} align="center">
+                    <Icon as={CalendarIcon} color="blue.500" boxSize={5} />
+                    <Text fontWeight="600" color="gray.600">
+                      Ngày:
+                    </Text>
+                    <Text color="gray.800">{selectedNews.date}</Text>
+                  </HStack>
+
+                  <HStack spacing={2} align="center">
+                    <Icon as={ViewIcon} color="green.500" boxSize={5} />
+                    <Text fontWeight="600" color="gray.600">
+                      Ngành:
+                    </Text>
+                    <Text color="gray.800">
+                      {Array.isArray(selectedNews.industry)
+                        ? selectedNews.industry.join(", ")
+                        : selectedNews.industry}
+                    </Text>
+                  </HStack>
+
+                  <HStack spacing={2} align="center">
+                    <Icon as={StarIcon} color="orange.500" boxSize={5} />
+                    <Text fontWeight="600" color="gray.600">
+                      Ảnh hưởng:
+                    </Text>
+                    <Text color="gray.800">{selectedNews.influence_score}</Text>
+                    <Box
+                      w="20px"
+                      h="20px"
+                      bg={selectedNews.color}
+                      borderRadius="sm"
+                      ml={2}
+                    />
+                  </HStack>
+                </Flex>
+
+                {/* --- Summary --- */}
+                <Box w="full">
+                  <Heading
+                    size="md"
+                    mb={3}
+                    color="blue.700"
+                    display="flex"
+                    alignItems="center"
+                  >
+                    <Box
+                      w="4px"
+                      h="22px"
+                      bg="blue.500"
+                      mr={2}
+                      borderRadius="full"
+                    />
+                    Tóm tắt
+                  </Heading>
+                  <Text
+                    bg="blue.50"
+                    p={4}
+                    borderRadius="lg"
+                    borderLeft="4px solid"
+                    borderColor="blue.500"
+                    fontStyle="italic"
+                    color="gray.700"
+                    fontSize="lg"
+                  >
                     {selectedNews.summary}
                   </Text>
                 </Box>
-                
-                {/* --- Nội dung đầy đủ --- */}
-                <Box>
-                  <Heading size="md" mb={2}>Nội dung chi tiết</Heading>
-                  <Text whiteSpace="pre-wrap" lineHeight="tall">
-                    {selectedNews.content || "Không có nội dung chi tiết để hiển thị."}
-                  </Text>
+
+                {/* --- Full Content --- */}
+                <Box w="full">
+                  <Heading
+                    size="md"
+                    mb={3}
+                    color="blue.700"
+                    display="flex"
+                    alignItems="center"
+                  >
+                    <Box
+                      w="4px"
+                      h="22px"
+                      bg="blue.500"
+                      mr={2}
+                      borderRadius="full"
+                    />
+                    Nội dung chi tiết
+                  </Heading>
+                  <Box
+                    bg="gray.50"
+                    p={4}
+                    borderRadius="lg"
+                    maxH="400px"
+                    overflowY="auto"
+                  >
+                    <Text
+                      whiteSpace="pre-wrap"
+                      lineHeight="1.7"
+                      fontSize="md"
+                      color="gray.800"
+                    >
+                      {selectedNews.link ||
+                        "Không có nội dung chi tiết để hiển thị."}
+                    </Text>
+                  </Box>
                 </Box>
-                 {/* --- Hashtags --- */}
-                <Box>
-                    <Heading size="sm" mb={2}>Hashtags</Heading>
-                    <Flex wrap="wrap" gap={2}>
-                        {Array.isArray(selectedNews.hashtags) && selectedNews.hashtags.map((tag, i) => (
-                            <Tag key={i} size="md" colorScheme="blue" variant="subtle">{tag}</Tag>
-                        ))}
-                    </Flex>
+
+                {/* --- Hashtags --- */}
+                <Box w="full">
+                  <Heading
+                    size="md"
+                    mb={3}
+                    color="blue.700"
+                    display="flex"
+                    alignItems="center"
+                  >
+                    <Box
+                      w="4px"
+                      h="22px"
+                      bg="blue.500"
+                      mr={2}
+                      borderRadius="full"
+                    />
+                    Hashtags
+                  </Heading>
+                  <Flex wrap="wrap" gap={2}>
+                    {Array.isArray(selectedNews.hashtags) &&
+                      selectedNews.hashtags.map((tag, i) => (
+                        <Tag
+                          key={i}
+                          size="md"
+                          colorScheme="blue"
+                          variant="solid"
+                          borderRadius="full"
+                          px={4}
+                          py={1.5}
+                          fontWeight="600"
+                        >
+                          #{tag}
+                        </Tag>
+                      ))}
+                  </Flex>
                 </Box>
               </VStack>
             </ModalBody>
-            <ModalFooter>
-              <Button onClick={onClose}>Đóng</Button>
+
+            <ModalFooter borderTop="1px solid" borderColor="gray.100">
+              <Button
+                onClick={onClose}
+                colorScheme="blue"
+                size="lg"
+                px={8}
+                borderRadius="md"
+                _hover={{ transform: "scale(1.02)" }}
+                transition="all 0.2s"
+              >
+                Đóng
+              </Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
@@ -397,5 +598,24 @@ const NewsTable = ({ newsData, loading, error }) => {
     </Box>
   );
 };
+
+const SectionBlock = ({ title, children }) => (
+  <Box w="full">
+    <Heading size="md" mb={3} color="blue.700" display="flex" alignItems="center">
+      <Box w="4px" h="22px" bg="blue.500" mr={2} borderRadius="full" />
+      {title}
+    </Heading>
+    {children}
+  </Box>
+);
+
+const BadgeInfo = ({ label, value, icon, colorScheme = "blue", badge }) => (
+  <HStack spacing={2} align="center">
+    <Icon as={icon} color={`${colorScheme}.500`} boxSize={5} />
+    <Text fontWeight="600" color="gray.600">{label}:</Text>
+    <Text color="gray.800">{value}</Text>
+    {badge}
+  </HStack>
+);
 
 export default NewsTable;
